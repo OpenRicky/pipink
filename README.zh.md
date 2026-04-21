@@ -25,18 +25,18 @@ Roadmap：
 
 ## 快速部署
 
-### 1. 登录 Cloudflare
-
-拉取项目后，先在终端登录 Cloudflare：
-
-```bash
-pnpm wrangler login
-```
-
-### 2. 安装依赖
+### 1. 安装依赖
 
 ```bash
 pnpm install
+```
+
+### 2. 登录 Cloudflare
+
+拉取项目并安装依赖后，再在终端登录 Cloudflare：
+
+```bash
+pnpm wrangler login
 ```
 
 ### 3. 创建 Wrangler 配置
@@ -73,13 +73,13 @@ pnpm wrangler secret put INITIAL_ACCESS_TOKEN
 
 `INITIAL_ACCESS_TOKEN` 是可选的；如果不设置，pipink 会在首次管理员登录成功后自动生成第一个 token。
 
-如果后续你要重置 `ADMIN_KEY`，再次执行 `pnpm wrangler secret put ADMIN_KEY`，然后重新执行 `pnpm deploy` 即可。
+如果后续你要重置 `ADMIN_KEY`，再次执行 `pnpm wrangler secret put ADMIN_KEY`，然后重新执行 `pnpm deploy:worker` 即可。
 如果 Workers KV 里已经保存了访问 token，后续再修改 `INITIAL_ACCESS_TOKEN` 也不会覆盖这个现有 token。
 
 ### 5. 部署到 Cloudflare
 
 ```bash
-pnpm deploy
+pnpm deploy:worker
 ```
 
 部署完成后，地址通常类似：
@@ -156,7 +156,7 @@ pnpm dev
 pnpm build
 pnpm check
 pnpm dev
-pnpm deploy
+pnpm deploy:worker
 ```
 
 管理后台使用 Vue 3 与 Vite 构建。静态产物会输出到 `dist` 目录，并由 Cloudflare Workers Static Assets 提供。

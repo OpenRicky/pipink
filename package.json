@@ -8,7 +8,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "pnpm build && pnpm wrangler dev",
-    "deploy": "pnpm build && pnpm wrangler deploy",
+    "deploy:worker": "pnpm build && pnpm wrangler deploy",
     "check": "tsc --noEmit"
   },
   "dependencies": {

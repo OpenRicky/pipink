@@ -23,18 +23,18 @@ Roadmap:
 
 ## Quick Deploy
 
-### 1. Log in to Cloudflare
-
-After cloning the project, log in to Cloudflare in your terminal:
-
-```bash
-pnpm wrangler login
-```
-
-### 2. Install dependencies
+### 1. Install dependencies
 
 ```bash
 pnpm install
+```
+
+### 2. Log in to Cloudflare
+
+After cloning the project and installing dependencies, log in to Cloudflare in your terminal:
+
+```bash
+pnpm wrangler login
 ```
 
 ### 3. Create your Wrangler config
@@ -71,13 +71,13 @@ pnpm wrangler secret put INITIAL_ACCESS_TOKEN
 
 `INITIAL_ACCESS_TOKEN` is optional. If you skip it, pipink generates the first token after the first successful admin login.
 
-To rotate `ADMIN_KEY` later, run `pnpm wrangler secret put ADMIN_KEY` again and redeploy with `pnpm deploy`.
+To rotate `ADMIN_KEY` later, run `pnpm wrangler secret put ADMIN_KEY` again and redeploy with `pnpm deploy:worker`.
 If an access token is already stored in Workers KV, changing `INITIAL_ACCESS_TOKEN` later will not overwrite that existing token.
 
 ### 5. Deploy to Cloudflare
 
 ```bash
-pnpm deploy
+pnpm deploy:worker
 ```
 
 After deployment, the URLs usually look like this:
@@ -154,7 +154,7 @@ Useful commands:
 pnpm build
 pnpm check
 pnpm dev
-pnpm deploy
+pnpm deploy:worker
 ```
 
 The admin UI is built with Vue 3 and Vite. Static assets are emitted into `dist` and served by Cloudflare Workers Static Assets.
