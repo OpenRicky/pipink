@@ -2,6 +2,8 @@
 
 English | [中文](./README.zh.md)
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/OpenRicky/pipink)
+
 ## Project Introduction
 
 pipink is a Cloudflare Workers project that exposes one stable public entrypoint and proxies traffic to a target URL stored in Workers KV. Clients keep calling the same Worker URL, while operators can update the upstream target at runtime through the admin API or admin UI.
@@ -23,6 +25,16 @@ Roadmap:
 
 ## Quick Deploy
 
+### Option A. Deploy with the Cloudflare button
+
+Use the button at the top of this README to deploy directly from GitHub.
+
+Cloudflare will create a new repository from this deploy template, provision the `LINK_STORE` KV namespace during setup, and prompt you for `ADMIN_KEY` plus `INITIAL_ACCESS_TOKEN` based on `.dev.vars.example`.
+
+The committed `wrangler.jsonc` is the public template that makes this possible.
+
+### Option B. Manual deployment
+
 ### 1. Install dependencies
 
 ```bash
@@ -37,15 +49,19 @@ After cloning the project and installing dependencies, log in to Cloudflare in y
 pnpm wrangler login
 ```
 
-### 3. Create your Wrangler config
+### 3. Update the Wrangler config
 
-Copy the public template first:
+The repository now includes a public `wrangler.jsonc` for Deploy to Cloudflare and manual deployment.
+
+If you want private local or production overrides, copy it first and edit the ignored `wrangler.local.jsonc` instead:
 
 ```bash
-cp wrangler.jsonc.example wrangler.jsonc
+cp wrangler.jsonc wrangler.local.jsonc
 ```
 
-Then update these fields in `wrangler.jsonc`:
+`pnpm dev` and `pnpm deploy:worker` automatically prefer `wrangler.local.jsonc` when it exists. If it does not exist, they fall back to the committed `wrangler.jsonc`.
+
+Update these fields in whichever config file you use:
 
 - `name`: choose a unique Worker name
 - `kv_namespaces[0].id`: run `pnpm wrangler kv namespace create LINK_STORE` and paste the returned production ID
@@ -69,7 +85,9 @@ pnpm wrangler secret put ADMIN_KEY
 pnpm wrangler secret put INITIAL_ACCESS_TOKEN
 ```
 
-`INITIAL_ACCESS_TOKEN` is optional. If you skip it, pipink generates the first token after the first successful admin login.
+`INITIAL_ACCESS_TOKEN` seeds the first public token. If you leave it unset during a manual deployment, pipink generates the first token after the first successful admin login.
+
+If you deploy with the Cloudflare button, Cloudflare will ask for these secret values during setup and you do not need to create the KV namespace manually.
 
 To rotate `ADMIN_KEY` later, run `pnpm wrangler secret put ADMIN_KEY` again and redeploy with `pnpm deploy:worker`.
 If an access token is already stored in Workers KV, changing `INITIAL_ACCESS_TOKEN` later will not overwrite that existing token.
@@ -123,7 +141,7 @@ If you want to test locally before deployment, create a local env file:
 cp .dev.vars.example .dev.vars
 ```
 
-If you want local `wrangler dev` to use a preview KV namespace, create one and add `preview_id` under `kv_namespaces[0]` in `wrangler.jsonc`:
+If you want local `wrangler dev` to use a preview KV namespace, create one and add `preview_id` under `kv_namespaces[0]` in the config file you actually use:
 
 ```bash
 pnpm wrangler kv namespace create LINK_STORE --preview

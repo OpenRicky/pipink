@@ -7,9 +7,22 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "pnpm build && pnpm wrangler dev",
-    "deploy:worker": "pnpm build && pnpm wrangler deploy",
+    "dev": "pnpm build && node ./scripts/run-wrangler.mjs dev",
+    "deploy:worker": "pnpm build && node ./scripts/run-wrangler.mjs deploy",
     "check": "tsc --noEmit"
+  },
+  "cloudflare": {
+    "bindings": {
+      "LINK_STORE": {
+        "description": "KV namespace used to store the current upstream target URL and the public access token."
+      },
+      "ADMIN_KEY": {
+        "description": "Secret used to sign in to /admin and authorize admin API requests."
+      },
+      "INITIAL_ACCESS_TOKEN": {
+        "description": "Optional initial public token. If omitted, pipink generates one after the first successful admin login."
+      }
+    }
   },
   "dependencies": {
     "vue": "^3.5.13",
