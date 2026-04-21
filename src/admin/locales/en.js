@@ -1,0 +1,41 @@
+export default {
+  admin: {
+    documentTitle: "pipink Admin",
+    heading: "Link Admin",
+    logout: "Sign out",
+    adminKeyLabel: "Admin Key",
+    adminKeyPlaceholder: "Enter ADMIN_KEY",
+    authenticate: "Verify and enter",
+    dailyUsagePrefix: "Daily usage: open the shared URL with",
+    targetUrlLabel: "Target URL",
+    syncLatestTarget: "Sync latest target",
+    accessTokenLabel: "Access Token",
+    regenerateAccessToken: "Regenerate",
+    accessTokenPlaceholder: "Enter access token",
+    save: "Save",
+    enterAdminKey: "Enter ADMIN_KEY first",
+    verifyingAdminKey: "Verifying ADMIN_KEY...",
+    adminKeyFailed: "ADMIN_KEY verification failed",
+    syncingLatestTarget: "Syncing latest target...",
+    adminKeyExpired: "ADMIN_KEY expired. Verify again.",
+    readFailed: "Failed to load settings",
+    enterTargetUrl: "Enter the target URL",
+    enterAccessToken: "Enter the access token",
+    saving: "Saving...",
+    saveFailed: "Save failed",
+    saved: "Saved",
+    logoutConfirm: "Sign out from the admin session?",
+    logoutFailed: "Sign out failed",
+    loggedOut: "Signed out",
+    languageLabel: "Language"
+  },
+  apiErrors: {
+    unauthorized: "Unauthorized",
+    invalidJsonBody: "Invalid JSON body",
+    invalidTargetUrl: "targetUrl must be a valid http or https URL",
+    invalidAccessToken: "accessToken must be a non-empty string",
+    methodNotAllowed: "Method not allowed",
+    accessTokenNotConfigured: "Access token is not configured",
+    targetUrlNotConfigured: "Target URL is not configured"
+  }
+};

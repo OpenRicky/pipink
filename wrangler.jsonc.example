@@ -1,0 +1,17 @@
+{
+  "name": "pipink",
+  "main": "src/api/index.ts",
+  "compatibility_date": "2026-04-21",
+  "assets": {
+    "directory": "./dist"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "LINK_STORE",
+      "id": "replace-with-production-kv-namespace-id"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

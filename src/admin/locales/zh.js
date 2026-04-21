@@ -1,0 +1,41 @@
+export default {
+  admin: {
+    documentTitle: "pipink 管理台",
+    heading: "链接管理",
+    logout: "退出登录",
+    adminKeyLabel: "管理员 Key",
+    adminKeyPlaceholder: "输入 ADMIN_KEY",
+    authenticate: "验证并进入管理",
+    dailyUsagePrefix: "日常使用方式：访问时带上",
+    targetUrlLabel: "链接地址",
+    syncLatestTarget: "同步最新地址",
+    accessTokenLabel: "访问 Token",
+    regenerateAccessToken: "重新生成",
+    accessTokenPlaceholder: "输入访问 Token",
+    save: "保存",
+    enterAdminKey: "请先输入管理员 Key",
+    verifyingAdminKey: "正在验证管理员 Key...",
+    adminKeyFailed: "管理员 Key 验证失败",
+    syncingLatestTarget: "正在同步最新地址...",
+    adminKeyExpired: "管理员 Key 已失效，请重新验证",
+    readFailed: "读取失败",
+    enterTargetUrl: "请输入目标链接",
+    enterAccessToken: "请输入访问 Token",
+    saving: "正在保存...",
+    saveFailed: "保存失败",
+    saved: "保存成功",
+    logoutConfirm: "确认退出当前管理会话吗？",
+    logoutFailed: "退出登录失败",
+    loggedOut: "已退出登录",
+    languageLabel: "语言"
+  },
+  apiErrors: {
+    unauthorized: "未授权",
+    invalidJsonBody: "请求体 JSON 无效",
+    invalidTargetUrl: "targetUrl 必须是有效的 http 或 https 地址",
+    invalidAccessToken: "accessToken 必须是非空字符串",
+    methodNotAllowed: "请求方法不被允许",
+    accessTokenNotConfigured: "访问 Token 尚未配置",
+    targetUrlNotConfigured: "目标链接尚未配置"
+  }
+};

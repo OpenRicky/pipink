@@ -1,0 +1,25 @@
+{
+  "name": "pipink",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "packageManager": "pnpm@10.33.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "pnpm build && pnpm wrangler dev",
+    "deploy": "pnpm build && pnpm wrangler deploy",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "vue": "^3.5.13",
+    "vue-i18n": "^11.3.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260418.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "typescript": "^5.9.3",
+    "vite": "^6.3.5",
+    "wrangler": "^4.13.2"
+  }
+}

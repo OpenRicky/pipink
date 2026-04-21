@@ -1,0 +1,368 @@
+openapi: 3.0.3
+info:
+  title: pipink API
+  version: 0.1.0
+  description: |
+    API contract for pipink, a Cloudflare Worker that proxies a stable public URL
+    to a runtime-configurable upstream target URL.
+servers:
+  - url: http://127.0.0.1:8787
+    description: Local development
+  - url: https://pipink.<your-subdomain>.workers.dev
+    description: Example workers.dev deployment
+tags:
+  - name: Health
+  - name: Admin
+  - name: Proxy
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is reachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /admin/bootstrap:
+    get:
+      tags:
+        - Admin
+      summary: Check admin session state
+      operationId: getAdminBootstrap
+      description: Returns the current admin session state for the browser-based admin UI.
+      responses:
+        '200':
+          description: Bootstrap response
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/AdminBootstrapAuthenticatedResponse'
+                  - $ref: '#/components/schemas/AdminBootstrapAnonymousResponse'
+  /admin/login:
+    post:
+      tags:
+        - Admin
+      summary: Create an admin session
+      operationId: postAdminLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+      responses:
+        '200':
+          description: Login succeeded and a session cookie was issued
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: Session cookie named pipink_admin_session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSettingsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /admin/logout:
+    post:
+      tags:
+        - Admin
+      summary: Clear the admin session cookie
+      operationId: postAdminLogout
+      responses:
+        '200':
+          description: Logout response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+  /admin/settings:
+    get:
+      tags:
+        - Admin
+      summary: Read current target URL and access token
+      operationId: getAdminSettings
+      security:
+        - AdminBearerAuth: []
+        - AdminSessionCookie: []
+      responses:
+        '200':
+          description: Current runtime settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSettingsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags:
+        - Admin
+      summary: Update target URL and access token together
+      operationId: putAdminSettings
+      security:
+        - AdminBearerAuth: []
+        - AdminSessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminSettingsUpdateRequest'
+      responses:
+        '200':
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AdminSettingsResponse'
+                  - type: object
+                    properties:
+                      ok:
+                        type: boolean
+                        example: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /admin/target:
+    get:
+      tags:
+        - Admin
+      summary: Read the current target URL
+      operationId: getAdminTarget
+      security:
+        - AdminBearerAuth: []
+        - AdminSessionCookie: []
+      responses:
+        '200':
+          description: Current target URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTargetResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags:
+        - Admin
+      summary: Update the current target URL
+      operationId: putAdminTarget
+      security:
+        - AdminBearerAuth: []
+        - AdminSessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminTargetUpdateRequest'
+      responses:
+        '200':
+          description: Target URL updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AdminTargetResponse'
+                  - type: object
+                    properties:
+                      ok:
+                        type: boolean
+                        example: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /:
+    get:
+      tags:
+        - Proxy
+      summary: Proxy the root request to the configured upstream target
+      operationId: proxyRootRequest
+      description: Forwards the request to the configured upstream URL. Query parameters other than `token` are preserved.
+      security:
+        - ProxyToken: []
+      responses:
+        '200':
+          description: Proxied upstream response
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: Proxy is not fully configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /{proxyPath}:
+    get:
+      tags:
+        - Proxy
+      summary: Proxy a non-admin path to the configured upstream target
+      operationId: proxyNamedPath
+      description: |
+        The Worker proxies non-admin paths to the current upstream target URL.
+        This document shows the common GET case; the Worker forwards other HTTP methods in the same way.
+      security:
+        - ProxyToken: []
+      parameters:
+        - name: proxyPath
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Any non-admin relative path to append to the public Worker URL
+      responses:
+        '200':
+          description: Proxied upstream response
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: Proxy is not fully configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    AdminBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: ADMIN_KEY
+    AdminSessionCookie:
+      type: apiKey
+      in: cookie
+      name: pipink_admin_session
+    ProxyToken:
+      type: apiKey
+      in: query
+      name: token
+  responses:
+    BadRequest:
+      description: Invalid request body or invalid parameter value
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - ok
+      properties:
+        ok:
+          type: boolean
+          example: true
+    OkResponse:
+      type: object
+      required:
+        - ok
+      properties:
+        ok:
+          type: boolean
+          example: true
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: Unauthorized
+    AdminLoginRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: ADMIN_KEY value
+    AdminTargetUpdateRequest:
+      type: object
+      required:
+        - targetUrl
+      properties:
+        targetUrl:
+          type: string
+          format: uri
+          example: https://example.com/your-real-link
+    AdminSettingsUpdateRequest:
+      type: object
+      required:
+        - targetUrl
+        - accessToken
+      properties:
+        targetUrl:
+          type: string
+          format: uri
+          example: https://example.com/your-real-link
+        accessToken:
+          type: string
+          example: your-access-token
+    AdminTargetResponse:
+      type: object
+      required:
+        - configured
+        - targetUrl
+      properties:
+        configured:
+          type: boolean
+          example: true
+        targetUrl:
+          type: string
+          nullable: true
+          format: uri
+          example: https://example.com/your-real-link
+    AdminSettingsResponse:
+      type: object
+      required:
+        - configured
+        - targetUrl
+        - accessToken
+      properties:
+        configured:
+          type: boolean
+          example: true
+        targetUrl:
+          type: string
+          nullable: true
+          format: uri
+          example: https://example.com/your-real-link
+        accessToken:
+          type: string
+          example: your-access-token
+    AdminBootstrapAnonymousResponse:
+      type: object
+      required:
+        - authenticated
+      properties:
+        authenticated:
+          type: boolean
+          enum:
+            - false
+    AdminBootstrapAuthenticatedResponse:
+      allOf:
+        - type: object
+          required:
+            - authenticated
+          properties:
+            authenticated:
+              type: boolean
+              enum:
+                - true
+        - $ref: '#/components/schemas/AdminSettingsResponse'

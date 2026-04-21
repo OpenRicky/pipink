@@ -1,0 +1,4 @@
+ADMIN_KEY=replace-with-admin-key
+# Optional: provide an INITIAL_ACCESS_TOKEN seed value.
+# If omitted, the first successful admin login will auto-generate a 32-character token and store it in KV.
+# INITIAL_ACCESS_TOKEN=replace-with-access-token
