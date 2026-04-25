@@ -27,7 +27,12 @@ export default {
     logoutConfirm: "Sign out from the admin session?",
     logoutFailed: "Sign out failed",
     loggedOut: "Signed out",
-    languageLabel: "Language"
+    languageLabel: "Language",
+    themeLabel: "Theme",
+    themeAuto: "Auto",
+    themeLight: "Light",
+    themeDark: "Dark",
+    moreOptions: "More options"
   },
   apiErrors: {
     unauthorized: "Unauthorized",

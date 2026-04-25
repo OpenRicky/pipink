@@ -1,9 +1,16 @@
 <script setup>
-import { onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { availableLocales, localeStorageKey } from "./i18n";
 
 const { t, locale } = useI18n();
+
+const themeStorageKey = "pipink_admin_theme_mode";
+const availableThemeModes = [
+  { code: "system", labelKey: "admin.themeAuto" },
+  { code: "light", labelKey: "admin.themeLight" },
+  { code: "dark", labelKey: "admin.themeDark" }
+];
 
 const apiErrorKeys = {
   "Unauthorized": "apiErrors.unauthorized",
@@ -20,6 +27,8 @@ const targetUrl = ref("");
 const accessToken = ref("");
 const authenticated = ref(false);
 const busy = ref(false);
+const compactMenu = ref(null);
+const themeMode = ref(detectThemeMode());
 const statusMessage = ref("");
 const statusError = ref(false);
 const statusVisible = ref(false);
@@ -27,6 +36,27 @@ const toastMessage = ref("");
 const toastVisible = ref(false);
 
 let toastTimer = null;
+let systemThemeMediaQuery = null;
+
+function normalizeThemeMode(value) {
+  return ["system", "light", "dark"].includes(value) ? value : "system";
+}
+
+function detectThemeMode() {
+  if (typeof window !== "undefined") {
+    return normalizeThemeMode(window.localStorage.getItem(themeStorageKey));
+  }
+
+  return "system";
+}
+
+function getSystemTheme() {
+  if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  return "light";
+}
 
 const resolveMessage = (message, fallbackKey) => {
   const key = apiErrorKeys[message];
@@ -38,8 +68,25 @@ const applyDocumentLanguage = () => {
   document.title = t("admin.documentTitle");
 };
 
+const applyTheme = () => {
+  const resolvedTheme = themeMode.value === "system" ? getSystemTheme() : themeMode.value;
+  document.documentElement.dataset.theme = resolvedTheme;
+  document.documentElement.dataset.themeMode = themeMode.value;
+  document.documentElement.style.colorScheme = resolvedTheme;
+};
+
 const setLocale = (nextLocale) => {
   locale.value = nextLocale;
+};
+
+const setThemeMode = (nextThemeMode) => {
+  themeMode.value = normalizeThemeMode(nextThemeMode);
+};
+
+const closeCompactMenu = () => {
+  if (compactMenu.value?.open) {
+    compactMenu.value.open = false;
+  }
 };
 
 const setStatus = (message, isError = false) => {
@@ -271,6 +318,22 @@ const regenerateAccessToken = () => {
   accessToken.value = generateAccessToken();
 };
 
+const handleSystemThemeChange = () => {
+  if (themeMode.value === "system") {
+    applyTheme();
+  }
+};
+
+const handleDocumentClick = (event) => {
+  if (!compactMenu.value || !(event.target instanceof Node)) {
+    return;
+  }
+
+  if (!compactMenu.value.contains(event.target)) {
+    closeCompactMenu();
+  }
+};
+
 watch(locale, (nextLocale) => {
   if (typeof window !== "undefined") {
     window.localStorage.setItem(localeStorageKey, nextLocale);
@@ -279,7 +342,53 @@ watch(locale, (nextLocale) => {
   applyDocumentLanguage();
 });
 
+watch(themeMode, (nextThemeMode) => {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(themeStorageKey, nextThemeMode);
+  }
+
+  applyTheme();
+});
+
+onBeforeUnmount(() => {
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+  }
+
+  if (typeof document !== "undefined") {
+    document.removeEventListener("click", handleDocumentClick);
+  }
+
+  if (!systemThemeMediaQuery) {
+    return;
+  }
+
+  if (typeof systemThemeMediaQuery.removeEventListener === "function") {
+    systemThemeMediaQuery.removeEventListener("change", handleSystemThemeChange);
+    return;
+  }
+
+  if (typeof systemThemeMediaQuery.removeListener === "function") {
+    systemThemeMediaQuery.removeListener(handleSystemThemeChange);
+  }
+});
+
 onMounted(() => {
+  if (typeof document !== "undefined") {
+    document.addEventListener("click", handleDocumentClick);
+  }
+
+  if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+    systemThemeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    if (typeof systemThemeMediaQuery.addEventListener === "function") {
+      systemThemeMediaQuery.addEventListener("change", handleSystemThemeChange);
+    } else if (typeof systemThemeMediaQuery.addListener === "function") {
+      systemThemeMediaQuery.addListener(handleSystemThemeChange);
+    }
+  }
+
+  applyTheme();
   applyDocumentLanguage();
   bootstrap();
 });
@@ -295,19 +404,85 @@ onMounted(() => {
         </div>
 
         <div class="hero-actions">
-          <div class="language-switch" :aria-label="t('admin.languageLabel')">
-            <button
-              v-for="option in availableLocales"
-              :key="option.code"
-              class="language-button"
-              :class="{ active: locale === option.code }"
-              type="button"
-              :disabled="busy && locale === option.code"
-              @click="setLocale(option.code)"
-            >
-              {{ option.label }}
-            </button>
+          <div class="hero-preferences hero-preferences-inline">
+            <div class="theme-switch" :aria-label="t('admin.themeLabel')">
+              <button
+                v-for="option in availableThemeModes"
+                :key="option.code"
+                class="theme-button"
+                :class="{ active: themeMode === option.code }"
+                type="button"
+                :aria-label="t(option.labelKey)"
+                :title="t(option.labelKey)"
+                :aria-pressed="themeMode === option.code"
+                @click="setThemeMode(option.code)"
+              >
+                <svg v-if="option.code === 'system'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="12" rx="2" />
+                  <path d="M8 20h8" />
+                  <path d="M12 16v4" />
+                </svg>
+                <svg v-else-if="option.code === 'light'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2" />
+                  <path d="M12 20v2" />
+                  <path d="M4.93 4.93l1.41 1.41" />
+                  <path d="M17.66 17.66l1.41 1.41" />
+                  <path d="M2 12h2" />
+                  <path d="M20 12h2" />
+                  <path d="M4.93 19.07l1.41-1.41" />
+                  <path d="M17.66 6.34l1.41-1.41" />
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3c0 5.12 4.15 9.29 9.29 9.79z" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="language-switch" :aria-label="t('admin.languageLabel')">
+              <button
+                v-for="option in availableLocales"
+                :key="option.code"
+                class="language-button"
+                :class="{ active: locale === option.code }"
+                type="button"
+                :disabled="busy && locale === option.code"
+                @click="setLocale(option.code)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
           </div>
+
+          <details ref="compactMenu" class="hero-preferences-menu">
+            <summary class="hero-menu-trigger" :aria-label="t('admin.moreOptions')" :title="t('admin.moreOptions')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="5" cy="12" r="1.5" />
+                <circle cx="12" cy="12" r="1.5" />
+                <circle cx="19" cy="12" r="1.5" />
+              </svg>
+            </summary>
+
+            <div class="hero-menu-panel">
+              <label class="hero-menu-field">
+                <span>{{ t("admin.themeLabel") }}</span>
+                <select :value="themeMode" @change="setThemeMode($event.target.value)">
+                  <option v-for="option in availableThemeModes" :key="option.code" :value="option.code">
+                    {{ t(option.labelKey) }}
+                  </option>
+                </select>
+              </label>
+
+              <label class="hero-menu-field">
+                <span>{{ t("admin.languageLabel") }}</span>
+                <select :value="locale" @change="setLocale($event.target.value)">
+                  <option v-for="option in availableLocales" :key="option.code" :value="option.code">
+                    {{ option.label }}
+                  </option>
+                </select>
+              </label>
+            </div>
+          </details>
 
           <button v-if="authenticated" class="danger" type="button" :disabled="busy" @click="logout">
             {{ t("admin.logout") }}

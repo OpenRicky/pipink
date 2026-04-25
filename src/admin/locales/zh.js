@@ -27,7 +27,12 @@ export default {
     logoutConfirm: "确认退出当前管理会话吗？",
     logoutFailed: "退出登录失败",
     loggedOut: "已退出登录",
-    languageLabel: "语言"
+    languageLabel: "语言",
+    themeLabel: "主题",
+    themeAuto: "自动",
+    themeLight: "浅色",
+    themeDark: "深色",
+    moreOptions: "更多选项"
   },
   apiErrors: {
     unauthorized: "未授权",
