@@ -29,7 +29,7 @@ Roadmap:
 
 Use the button at the top of this README to deploy directly from GitHub.
 
-Cloudflare will create a new repository from this deploy template, provision a KV namespace that is bound to the Worker as `LINK_STORE` by default during setup, and prompt you for `ADMIN_KEY` plus `INITIAL_ACCESS_TOKEN` based on `.dev.vars.example`.
+Cloudflare will create a new repository from this deploy template, provision a KV namespace that is bound to the Worker as `pipink` by default during setup, and prompt you for `ADMIN_KEY` plus `INITIAL_ACCESS_TOKEN` based on `.dev.vars.example`.
 
 The committed `wrangler.jsonc` is the public template that makes this possible.
 
@@ -64,8 +64,8 @@ cp wrangler.jsonc wrangler.local.jsonc
 Update these fields in whichever config file you use:
 
 - `name`: choose a unique Worker name
-- `kv_namespaces[0].id`: run `pnpm wrangler kv namespace create pipink-store` (or any name you prefer) and paste the returned production ID
-- `kv_namespaces[0].binding`: leave it as `LINK_STORE` unless you intentionally want a different binding alias
+- `kv_namespaces[0].id`: run `pnpm wrangler kv namespace create pipink` (or any name you prefer) and paste the returned production ID
+- `kv_namespaces[0].binding`: leave it as `pipink` unless you intentionally want a different binding alias
 - `KV_BINDING_NAME`: only set this plain-text variable if you changed `kv_namespaces[0].binding`; its value must exactly match the new binding alias in local and production environments
 - `observability.enabled`: keep it on if you want Cloudflare logs and traces
 
@@ -148,7 +148,7 @@ cp .dev.vars.example .dev.vars
 If you want local `wrangler dev` to use a preview KV namespace, create one and add `preview_id` under `kv_namespaces[0]` in the config file you actually use:
 
 ```bash
-pnpm wrangler kv namespace create LINK_STORE --preview
+pnpm wrangler kv namespace create pipink --preview
 ```
 
 Then start the local server:

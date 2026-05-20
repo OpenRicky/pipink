@@ -13,11 +13,11 @@
   },
   "cloudflare": {
     "bindings": {
-      "LINK_STORE": {
+      "pipink": {
         "description": "Default KV binding alias used to store the current upstream target URL and the public access token."
       },
       "KV_BINDING_NAME": {
-        "description": "Optional plain-text variable. When set, the worker reads the KV namespace bound under this name instead of LINK_STORE."
+        "description": "Optional plain-text variable. When set, the worker reads the KV namespace bound under this name instead of the default pipink alias."
       },
       "ADMIN_KEY": {
         "description": "Secret used to sign in to /admin and authorize admin API requests."

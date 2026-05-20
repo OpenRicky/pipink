@@ -1,4 +1,4 @@
-const DEFAULT_KV_BINDING_NAME = "LINK_STORE";
+const DEFAULT_KV_BINDING_NAME = "pipink";
 const TARGET_URL_KEY = "current_target_url";
 const ACCESS_TOKEN_KEY = "current_access_token";
 const ADMIN_SESSION_COOKIE = "pipink_admin_session";
@@ -6,7 +6,7 @@ const ADMIN_SESSION_TTL_SECONDS = 60 * 30;
 const encoder = new TextEncoder();
 
 interface Env {
-  LINK_STORE?: KVNamespace;
+  pipink?: KVNamespace;
   KV_BINDING_NAME?: string;
   INITIAL_ACCESS_TOKEN?: string;
   ACCESS_TOKEN?: string;
@@ -60,7 +60,14 @@ const readAdminToken = (request: Request): string | null => {
 
 const getAdminKey = (env: Env): string => env.ADMIN_KEY ?? env.ADMIN_TOKEN ?? "";
 
-const getKvBindingName = (env: Env): string => env.KV_BINDING_NAME?.trim() || DEFAULT_KV_BINDING_NAME;
+const getKvBindingNames = (env: Env): string[] => {
+  const configuredBindingName = env.KV_BINDING_NAME?.trim();
+  if (configuredBindingName) {
+    return [configuredBindingName];
+  }
+
+  return [DEFAULT_KV_BINDING_NAME];
+};
 
 const isKvNamespace = (value: unknown): value is KVNamespace => {
   if (typeof value !== "object" || value === null) {
@@ -72,14 +79,16 @@ const isKvNamespace = (value: unknown): value is KVNamespace => {
 };
 
 const getLinkStore = (env: Env): KVNamespace => {
-  const bindingName = getKvBindingName(env);
-  const linkStore = env[bindingName];
+  const bindingNames = getKvBindingNames(env);
 
-  if (!isKvNamespace(linkStore)) {
-    throw new MissingKvBindingError(bindingName);
+  for (const bindingName of bindingNames) {
+    const linkStore = env[bindingName];
+    if (isKvNamespace(linkStore)) {
+      return linkStore;
+    }
   }
 
-  return linkStore;
+  throw new MissingKvBindingError(bindingNames[0]);
 };
 
 const parseCookies = (request: Request): Map<string, string> => {

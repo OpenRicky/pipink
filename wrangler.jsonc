@@ -7,7 +7,7 @@
   },
   "kv_namespaces": [
     {
-      "binding": "LINK_STORE",
+      "binding": "pipink",
       "id": "replace-with-production-kv-namespace-id"
     }
   ],
