@@ -29,7 +29,7 @@ Roadmap:
 
 Use the button at the top of this README to deploy directly from GitHub.
 
-Cloudflare will create a new repository from this deploy template, provision the `LINK_STORE` KV namespace during setup, and prompt you for `ADMIN_KEY` plus `INITIAL_ACCESS_TOKEN` based on `.dev.vars.example`.
+Cloudflare will create a new repository from this deploy template, provision a KV namespace that is bound to the Worker as `LINK_STORE` by default during setup, and prompt you for `ADMIN_KEY` plus `INITIAL_ACCESS_TOKEN` based on `.dev.vars.example`.
 
 The committed `wrangler.jsonc` is the public template that makes this possible.
 
@@ -64,8 +64,12 @@ cp wrangler.jsonc wrangler.local.jsonc
 Update these fields in whichever config file you use:
 
 - `name`: choose a unique Worker name
-- `kv_namespaces[0].id`: run `pnpm wrangler kv namespace create LINK_STORE` and paste the returned production ID
+- `kv_namespaces[0].id`: run `pnpm wrangler kv namespace create pipink-store` (or any name you prefer) and paste the returned production ID
+- `kv_namespaces[0].binding`: leave it as `LINK_STORE` unless you intentionally want a different binding alias
+- `KV_BINDING_NAME`: only set this plain-text variable if you changed `kv_namespaces[0].binding`; its value must exactly match the new binding alias in local and production environments
 - `observability.enabled`: keep it on if you want Cloudflare logs and traces
+
+The actual Cloudflare KV namespace name can be anything. What the Worker cares about is the binding alias that appears in its environment.
 
 If you want to bind a custom domain, add this block to `wrangler.jsonc`. A normal `workers.dev` deployment does not need it:
 

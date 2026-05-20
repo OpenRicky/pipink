@@ -1,4 +1,7 @@
 ADMIN_KEY=replace-with-admin-key
+# Optional: set this only if you rename kv_namespaces[0].binding from LINK_STORE.
+# The value must exactly match the binding alias you configured in Wrangler.
+# KV_BINDING_NAME=MY_LINK_STORE
 # Optional seed value for the first public access token.
 # If you leave it unset during a manual deployment, the first successful admin login will auto-generate a 32-character token and store it in KV.
 INITIAL_ACCESS_TOKEN=replace-with-access-token

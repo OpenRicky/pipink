@@ -31,7 +31,7 @@ Roadmap：
 
 直接点击本 README 顶部的按钮即可从 GitHub 发起部署。
 
-Cloudflare 会基于这个部署模板创建一个新的仓库，并在部署过程中自动创建 `LINK_STORE` KV namespace，同时根据 `.dev.vars.example` 提示你填写 `ADMIN_KEY` 和 `INITIAL_ACCESS_TOKEN`。
+Cloudflare 会基于这个部署模板创建一个新的仓库，并在部署过程中自动创建一个默认以 `LINK_STORE` 绑定到 Worker 的 KV namespace，同时根据 `.dev.vars.example` 提示你填写 `ADMIN_KEY` 和 `INITIAL_ACCESS_TOKEN`。
 
 仓库里提交的 `wrangler.jsonc` 就是让这件事成立的公开模板。
 
@@ -66,8 +66,12 @@ cp wrangler.jsonc wrangler.local.jsonc
 然后修改你实际使用的配置文件里的这些字段：
 
 - `name`：填写一个唯一的 Worker 名称
-- `kv_namespaces[0].id`：执行 `pnpm wrangler kv namespace create LINK_STORE`，把返回的生产环境 ID 填进去
+- `kv_namespaces[0].id`：执行 `pnpm wrangler kv namespace create pipink-store`（或任何你喜欢的名称），把返回的生产环境 ID 填进去
+- `kv_namespaces[0].binding`：除非你明确想换一个 binding 别名，否则保持为 `LINK_STORE`
+- `KV_BINDING_NAME`：只有在你改了 `kv_namespaces[0].binding` 时才需要设置；它在本地和生产环境里的值都必须与新的 binding 别名完全一致
 - `observability.enabled`：如果你希望保留 Cloudflare 的日志与观测能力，可以继续保持开启
+
+Cloudflare 里实际的 KV namespace 名称可以自由决定，Worker 真正关心的是它运行时拿到的 binding 别名。
 
 如果你要绑定自定义域名，可以把下面这段加进 `wrangler.jsonc`。如果只是使用 `workers.dev`，则不需要：
 

@@ -1,3 +1,4 @@
+const DEFAULT_KV_BINDING_NAME = "LINK_STORE";
 const TARGET_URL_KEY = "current_target_url";
 const ACCESS_TOKEN_KEY = "current_access_token";
 const ADMIN_SESSION_COOKIE = "pipink_admin_session";
@@ -5,11 +6,13 @@ const ADMIN_SESSION_TTL_SECONDS = 60 * 30;
 const encoder = new TextEncoder();
 
 interface Env {
-  LINK_STORE: KVNamespace;
+  LINK_STORE?: KVNamespace;
+  KV_BINDING_NAME?: string;
   INITIAL_ACCESS_TOKEN?: string;
   ACCESS_TOKEN?: string;
   ADMIN_KEY?: string;
   ADMIN_TOKEN?: string;
+  [key: string]: unknown;
 }
 
 interface UpdatePayload {
@@ -23,6 +26,13 @@ interface SettingsPayload {
 
 interface LoginPayload {
   token?: string;
+}
+
+class MissingKvBindingError extends Error {
+  constructor(bindingName: string) {
+    super(`KV binding "${bindingName}" is not configured`);
+    this.name = "MissingKvBindingError";
+  }
 }
 
 const json = (body: unknown, status = 200): Response =>
@@ -49,6 +59,28 @@ const readAdminToken = (request: Request): string | null => {
 };
 
 const getAdminKey = (env: Env): string => env.ADMIN_KEY ?? env.ADMIN_TOKEN ?? "";
+
+const getKvBindingName = (env: Env): string => env.KV_BINDING_NAME?.trim() || DEFAULT_KV_BINDING_NAME;
+
+const isKvNamespace = (value: unknown): value is KVNamespace => {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as { get?: unknown; put?: unknown };
+  return typeof candidate.get === "function" && typeof candidate.put === "function";
+};
+
+const getLinkStore = (env: Env): KVNamespace => {
+  const bindingName = getKvBindingName(env);
+  const linkStore = env[bindingName];
+
+  if (!isKvNamespace(linkStore)) {
+    throw new MissingKvBindingError(bindingName);
+  }
+
+  return linkStore;
+};
 
 const parseCookies = (request: Request): Map<string, string> => {
   const cookieHeader = request.headers.get("cookie");
@@ -163,7 +195,7 @@ const isAllowedUrl = (value: string): boolean => {
 };
 
 const getCurrentAccessToken = async (env: Env): Promise<string> => {
-  const storedAccessToken = await env.LINK_STORE.get(ACCESS_TOKEN_KEY);
+  const storedAccessToken = await getLinkStore(env).get(ACCESS_TOKEN_KEY);
   return storedAccessToken ?? env.INITIAL_ACCESS_TOKEN ?? env.ACCESS_TOKEN ?? "";
 };
 
@@ -174,7 +206,7 @@ const ensureAccessToken = async (env: Env): Promise<string> => {
   }
 
   const generatedAccessToken = generateAccessToken();
-  await env.LINK_STORE.put(ACCESS_TOKEN_KEY, generatedAccessToken);
+  await getLinkStore(env).put(ACCESS_TOKEN_KEY, generatedAccessToken);
   return generatedAccessToken;
 };
 
@@ -204,7 +236,7 @@ const proxyRequest = async (request: Request, env: Env): Promise<Response> => {
     return json({ error: "Unauthorized" }, 401);
   }
 
-  const targetUrl = await env.LINK_STORE.get(TARGET_URL_KEY);
+  const targetUrl = await getLinkStore(env).get(TARGET_URL_KEY);
   if (!targetUrl) {
     return json({ error: "Target URL is not configured" }, 503);
   }
@@ -244,7 +276,7 @@ const handleAdminGet = async (request: Request, env: Env): Promise<Response> => 
     return unauthorized;
   }
 
-  const targetUrl = await env.LINK_STORE.get(TARGET_URL_KEY);
+  const targetUrl = await getLinkStore(env).get(TARGET_URL_KEY);
   return json({
     configured: Boolean(targetUrl),
     targetUrl: targetUrl ?? null
@@ -256,8 +288,9 @@ const getAdminSettings = async (env: Env): Promise<{
   targetUrl: string | null;
   accessToken: string;
 }> => {
+  const linkStore = getLinkStore(env);
   const [targetUrl, accessToken] = await Promise.all([
-    env.LINK_STORE.get(TARGET_URL_KEY),
+    linkStore.get(TARGET_URL_KEY),
     ensureAccessToken(env)
   ]);
 
@@ -294,7 +327,7 @@ const handleAdminPut = async (request: Request, env: Env): Promise<Response> => 
     return json({ error: "targetUrl must be a valid http or https URL" }, 400);
   }
 
-  await env.LINK_STORE.put(TARGET_URL_KEY, payload.targetUrl);
+  await getLinkStore(env).put(TARGET_URL_KEY, payload.targetUrl);
 
   return json({
     ok: true,
@@ -325,9 +358,10 @@ const handleAdminSettingsPut = async (request: Request, env: Env): Promise<Respo
 
   const accessToken = payload.accessToken.trim();
 
+  const linkStore = getLinkStore(env);
   await Promise.all([
-    env.LINK_STORE.put(TARGET_URL_KEY, payload.targetUrl),
-    env.LINK_STORE.put(ACCESS_TOKEN_KEY, accessToken)
+    linkStore.put(TARGET_URL_KEY, payload.targetUrl),
+    linkStore.put(ACCESS_TOKEN_KEY, accessToken)
   ]);
 
   return json({
@@ -382,61 +416,69 @@ const handleAdminBootstrap = async (request: Request, env: Env): Promise<Respons
 };
 
 const handleRequest = async (request: Request, env: Env): Promise<Response> => {
-  const url = new URL(request.url);
+  try {
+    const url = new URL(request.url);
 
-  if (url.pathname === "/health") {
-    return json({ ok: true });
-  }
+    if (url.pathname === "/health") {
+      return json({ ok: true });
+    }
 
-  if (url.pathname === "/admin/login") {
-    if (request.method !== "POST") {
+    if (url.pathname === "/admin/login") {
+      if (request.method !== "POST") {
+        return json({ error: "Method Not Allowed" }, 405);
+      }
+
+      return handleAdminLogin(request, env);
+    }
+
+    if (url.pathname === "/admin/logout") {
+      if (request.method !== "POST") {
+        return json({ error: "Method Not Allowed" }, 405);
+      }
+
+      return handleAdminLogout(request);
+    }
+
+    if (url.pathname === "/admin/bootstrap") {
+      if (request.method !== "GET") {
+        return json({ error: "Method Not Allowed" }, 405);
+      }
+
+      return handleAdminBootstrap(request, env);
+    }
+
+    if (url.pathname === "/admin/settings") {
+      if (request.method === "GET") {
+        return handleAdminSettingsGet(request, env);
+      }
+
+      if (request.method === "PUT") {
+        return handleAdminSettingsPut(request, env);
+      }
+
       return json({ error: "Method Not Allowed" }, 405);
     }
 
-    return handleAdminLogin(request, env);
-  }
+    if (url.pathname === "/admin/target") {
+      if (request.method === "GET") {
+        return handleAdminGet(request, env);
+      }
 
-  if (url.pathname === "/admin/logout") {
-    if (request.method !== "POST") {
+      if (request.method === "PUT") {
+        return handleAdminPut(request, env);
+      }
+
       return json({ error: "Method Not Allowed" }, 405);
     }
 
-    return handleAdminLogout(request);
+    return proxyRequest(request, env);
+  } catch (error) {
+    if (error instanceof MissingKvBindingError) {
+      return json({ error: error.message }, 503);
+    }
+
+    throw error;
   }
-
-  if (url.pathname === "/admin/bootstrap") {
-    if (request.method !== "GET") {
-      return json({ error: "Method Not Allowed" }, 405);
-    }
-
-    return handleAdminBootstrap(request, env);
-  }
-
-  if (url.pathname === "/admin/settings") {
-    if (request.method === "GET") {
-      return handleAdminSettingsGet(request, env);
-    }
-
-    if (request.method === "PUT") {
-      return handleAdminSettingsPut(request, env);
-    }
-
-    return json({ error: "Method Not Allowed" }, 405);
-  }
-
-  if (url.pathname === "/admin/target") {
-    if (request.method === "GET") {
-      return handleAdminGet(request, env);
-    }
-
-    if (request.method === "PUT") {
-      return handleAdminPut(request, env);
-    }
-
-    return json({ error: "Method Not Allowed" }, 405);
-  }
-
-  return proxyRequest(request, env);
 };
 
 export default {
